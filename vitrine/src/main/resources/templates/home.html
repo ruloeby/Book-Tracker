@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Management System - Home</title>
+    <link rel="preload" href="/image/r.jpg" as="image">
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <h1>ShelfTrack</h1>
+        </div>
+        <nav>
+            <ul>
+
+                <li><a th:href="@{/login}">Login</a></li>
+                <li><a th:href="@{/register}">Register</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h2>Welcome to ShelfTrack</h2>
+            <h3>A Book Management System </h3>
+            <p>Explore and manage your favorite books easily. Find new releases and classic books all in one place.</p>
+            <a th:href="@{/books}" class="btn">Browse Books</a>
+        </div>
+        <div class="hero-image">
+            <img th:src="@{/image/book.jpg}" alt="Books">
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="feature-card">
+            <h3>Wide Collection</h3>
+            <p>Thousands of books from various genres, authors, and languages available for you.</p>
+        </div>
+        <div class="feature-card">
+            <h3>User Friendly</h3>
+            <p>Easy navigation and simple management system for all book lovers.</p>
+        </div>
+        <div class="feature-card">
+            <h3>24/7 Access</h3>
+            <p>Access your favorite books anytime, anywhere without restrictions.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Book Management System. All rights reserved.</p>
+    </footer>
+</body>
+</html>

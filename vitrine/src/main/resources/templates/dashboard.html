@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Book Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+<body>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="user-info">
+            <div class="user-avatar">
+                <span th:text="${user['name'] != null ? user['name'].toString().substring(0,1).toUpperCase() : 'U'}">U</span>
+            </div>
+            <div class="user-details">
+                <h2 th:text="${user['name'] != null ? user['name'] : 'User'}">User</h2>
+                <p th:text="${user.email}">email</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a th:href="@{/books}" class="btn btn-outline-primary"><i class="fas fa-search"></i> Browse</a>
+            <a th:href="@{/logout}" class="btn btn-outline-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon reading"><i class="fas fa-book-open"></i></div>
+            <div class="stat-info">
+                <h3 th:text="${stats?.readingBooks != null ? stats.readingBooks : 0}">0</h3>
+                <p>Reading</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon completed"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-info">
+                <h3 th:text="${stats?.completedBooks != null ? stats.completedBooks : 0}">0</h3>
+                <p>Completed</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon to-read"><i class="fas fa-bookmark"></i></div>
+            <div class="stat-info">
+                <h3 th:text="${stats?.toReadBooks != null ? stats.toReadBooks : 0}">0</h3>
+                <p>To Read</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon total"><i class="fas fa-books"></i></div>
+            <div class="stat-info">
+                <h3 th:text="${stats?.totalBooks != null ? stats.totalBooks : 0}">0</h3>
+                <p>Total</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon ratings"><i class="fas fa-star"></i></div>
+            <div class="stat-info">
+                <h3 th:text="${stats?.totalRatings != null ? stats.totalRatings : 0}">0</h3>
+                <p>Ratings</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="content-card">
+            <div class="card-header-custom">
+                <h3 class="card-title"><i class="fas fa-book"></i> My Library</h3>
+                <button class="btn btn-primary" onclick="openManualAddModal()">
+                    <i class="fas fa-plus"></i> Add Book
+                </button>
+            </div>
+            <div th:if="${userBooks != null and !userBooks.isEmpty()}" class="books-grid">
+                <div class="book-card" th:each="book : ${userBooks}" th:data-bookid="${book.bookId}">
+                    <div class="book-cover">
+                        <img th:if="${book.coverUrl != null}" th:src="${book.coverUrl}" alt="Cover">
+                        <i th:unless="${book.coverUrl != null}" class="fas fa-book book-cover-placeholder"></i>
+                    </div>
+                    <div class="book-info">
+                        <h4 th:text="${book.title}">Title</h4>
+                        <p class="book-author" th:text="${book.author}">Author</p>
+
+                        <span class="status-badge"
+                              th:classappend="${book.status == 'READING' ? 'status-reading' : book.status == 'COMPLETED' ? 'status-completed' : 'status-to-read'}"
+                              th:text="${book.statusDisplay}">Status</span>
+                        <div class="progress-container" th:if="${book.totalPages != null and book.totalPages > 0}">
+                            <div class="progress-bar-custom">
+                                <div class="progress-fill" th:style="'width: ' + ${book.progressPercent != null ? book.progressPercent : 0} + '%'"></div>
+                            </div>
+                            <p class="progress-text">
+                                <span th:text="${book.currentPage != null ? book.currentPage : 0}">0</span> /
+                                <span th:text="${book.totalPages}">0</span> pages
+                            </p>
+                        </div>
+                        <div class="book-actions">
+                            <button class="btn-custom btn-edit" onclick="editBook(this)"
+                                    th:data-id="${book.libraryId}"
+                                    th:data-bookid="${book.bookId}"
+                                    th:data-title="${book.title}"
+                                    th:data-author="${book.author}"
+                                    th:data-pages="${book.totalPages}"
+                                    th:data-current="${book.currentPage}"
+                                    th:data-status="${book.status}"
+                                    th:data-rating="${book.userRating != null ? book.userRating : 0}">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn-custom btn-remove" onclick="removeBook(this)" th:data-id="${book.libraryId}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:if="${userBooks == null or userBooks.isEmpty()}" class="empty-state">
+                <i class="fas fa-book-open"></i>
+                <h3>Your library is empty</h3>
+                <p>Start by browsing or adding books manually!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Book</h3>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editForm">
+            <input type="hidden" id="editBookId">
+            <input type="hidden" id="editActualBookId">
+            <div class="form-group">
+                <label class="form-label">Title</label>
+                <input type="text" id="editTitle" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Your Rating</label>
+                <div class="star-rating-edit" id="editStarRating">
+                    <i class="far fa-star" data-rating="1"></i>
+                    <i class="far fa-star" data-rating="2"></i>
+                    <i class="far fa-star" data-rating="3"></i>
+                    <i class="far fa-star" data-rating="4"></i>
+                    <i class="far fa-star" data-rating="5"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Current Page</label>
+                <input type="number" id="editCurrentPage" class="form-control" min="0">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Total Pages</label>
+                <input type="number" id="editTotalPages" class="form-control" min="1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select id="editStatus" class="form-control">
+                    <option value="TO_READ">Want to Read</option>
+                    <option value="READING">Reading</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="ON_HOLD">On Hold</option>
+                    <option value="DROPPED">Dropped</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea id="editNotes" class="form-control" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Manual Add Modal -->
+<div id="manualAddModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-book-medical"></i> Add Book</h3>
+            <button class="modal-close" onclick="closeManualAddModal()">&times;</button>
+        </div>
+        <form id="manualAddForm">
+            <div class="form-group">
+                <label class="form-label">Title *</label>
+                <input type="text" id="manualTitle" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Author</label>
+                <input type="text" id="manualAuthor" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Total Pages</label>
+                <input type="number" id="manualTotalPages" class="form-control" min="1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select id="manualStatus" class="form-control">
+                    <option value="TO_READ">Want to Read</option>
+                    <option value="READING">Reading</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="manualAddBtn">
+                <i class="fas fa-plus"></i> Add Book
+            </button>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    let editRating = 0;
+    const userId = /*[[${user.id}]]*/ null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setupEditRating();
+    });
+
+    // Setup star rating in edit modal
+    function setupEditRating() {
+        document.querySelectorAll('#editStarRating i').forEach(star => {
+            star.addEventListener('click', () => {
+                editRating = parseInt(star.dataset.rating);
+                updateEditStars(editRating);
+            });
+
+            star.addEventListener('mouseover', () => {
+                updateEditStars(star.dataset.rating, true);
+            });
+
+            star.addEventListener('mouseout', () => {
+                updateEditStars(editRating);
+            });
+        });
+    }
+
+    function updateEditStars(rating, isHover = false) {
+        document.querySelectorAll('#editStarRating i').forEach((star, idx) => {
+            if (idx < rating) {
+                star.classList.remove('far', 'empty');
+                star.classList.add('fas');
+            } else {
+                star.classList.remove('fas');
+                star.classList.add('far', 'empty');
+            }
+        });
+    }
+
+    function editBook(button) {
+        document.getElementById('editBookId').value = button.dataset.id;
+        document.getElementById('editActualBookId').value = button.dataset.bookid;
+        document.getElementById('editTitle').value = button.dataset.title;
+        document.getElementById('editCurrentPage').value = button.dataset.current || 0;
+        document.getElementById('editTotalPages').value = button.dataset.pages || 0;
+        document.getElementById('editStatus').value = button.dataset.status || 'TO_READ';
+        document.getElementById('editNotes').value = button.dataset.notes || '';
+
+        editRating = parseInt(button.dataset.rating) || 0;
+        updateEditStars(editRating);
+
+        document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() { document.getElementById('editModal').classList.remove('show'); }
+
+    function removeBook(button) {
+        if (!confirm('Remove this book?')) return;
+        const libraryId = button.dataset.id;
+        fetch(`/dashboard/remove-book/${libraryId}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { showToast('Removed!', 'success'); location.reload(); }
+                else { showToast('Failed: ' + data.message, 'error'); }
+            })
+            .catch(() => showToast('Error', 'error'));
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const libraryId = document.getElementById('editBookId').value;
+        const bookId = document.getElementById('editActualBookId').value;
+        const currentPage = parseInt(document.getElementById('editCurrentPage').value);
+        const status = document.getElementById('editStatus').value;
+        const notes = document.getElementById('editNotes').value;
+
+        try {
+            // Update progress
+            await fetch(`/dashboard/library/${libraryId}/progress`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPage, notes })
+            });
+
+            // Update status
+            await fetch(`/dashboard/library/${libraryId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+
+            // Update rating if set
+            if (editRating > 0 && bookId) {
+                await fetch('/dashboard/rate-book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookId: bookId, rating: editRating })
+                });
+            }
+
+            showToast('Updated!', 'success');
+            closeEditModal();
+            location.reload();
+        } catch (e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    });
+
+    function openManualAddModal() {
+        document.getElementById('manualAddForm').reset();
+        document.getElementById('manualAddModal').classList.add('show');
+    }
+
+    function closeManualAddModal() { document.getElementById('manualAddModal').classList.remove('show'); }
+
+    document.getElementById('manualAddForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const title = document.getElementById('manualTitle').value.trim();
+        const author = document.getElementById('manualAuthor').value.trim();
+        const totalPages = document.getElementById('manualTotalPages').value;
+        const status = document.getElementById('manualStatus').value;
+
+        if (!title) { showToast('Enter title', 'error'); return; }
+
+        const btn = document.getElementById('manualAddBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+        fetch('/dashboard/add-book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title, author: author || 'Unknown',
+                totalPages: totalPages ? parseInt(totalPages) : 0,
+                status, coverUrl: null
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { showToast('Added!', 'success'); closeManualAddModal(); location.reload(); }
+                else { showToast('Failed: ' + (data.message || 'Error'), 'error'); }
+            })
+            .catch(() => showToast('Error', 'error'))
+            .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Add Book'; });
+    });
+
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed; top: 20px; right: 20px; padding: 15px 25px;
+            background: ${type === 'success' ? '#10b981' : '#ef4444'}; color: white;
+            border-radius: 8px; z-index: 9999; animation: slideIn 0.3s ease;
+        `;
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    document.getElementById('editModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+    document.getElementById('manualAddModal').addEventListener('click', function(e) { if (e.target === this) closeManualAddModal(); });
+    /*]]>*/
+</script>
+</body>
+</html>

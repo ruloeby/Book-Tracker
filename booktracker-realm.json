@@ -1,0 +1,58 @@
+{
+  "realm": "booktracker",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "vitrine",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "FZiCZgWJ69eegh4NvT5GwiZhX3jrAgJ8",
+      "redirectUris": [
+        "http://localhost:8080/*",
+        "http://vitrine:8080/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "http://vitrine:8080"
+      ],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "300",
+        "client.secret.creation.time": "1639392000"
+      }
+    },
+    {
+      "clientId": "book-service",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "bearerOnly": true
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "User role"
+      },
+      {
+        "name": "admin",
+        "description": "Admin role"
+      }
+    ]
+  },
+  "defaultRoles": ["user"]
+}

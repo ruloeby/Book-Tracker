@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Books - Book Management System</title>
+    <link rel="stylesheet" th:href="@{/css/vetrine.css}">
+    <link rel="stylesheet" th:href="@{/css/books.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<!-- Notifications -->
+<div id="successMessage" class="success-message">
+    <i class="fas fa-check-circle"></i> <span id="successText">Book added!</span>
+</div>
+<div id="errorMessage" class="error-message">
+    <i class="fas fa-exclamation-circle"></i> <span id="errorText">Error occurred</span>
+</div>
+<div id="warningMessage" class="warning-message">
+    <i class="fas fa-exclamation-triangle"></i> <span id="warningText">Warning</span>
+</div>
+
+<!-- Book Details Modal -->
+<div id="bookDetailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Book Details</h3>
+            <button class="modal-close" onclick="closeBookDetailsModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="book-details-grid">
+                <div>
+                    <img id="modalBookCover" src="" alt="Book Cover" class="book-cover-large">
+                </div>
+                <div class="book-info-details">
+                    <h4 id="modalBookTitle" class="fw-bold mb-3"></h4>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-user-pen"></i> Author:</span>
+                        <span id="modalBookAuthor" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-calendar"></i> Published:</span>
+                        <span id="modalBookYear" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-barcode"></i> ISBN:</span>
+                        <span id="modalBookIsbn" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-layer-group"></i> Pages:</span>
+                        <span id="modalBookPages" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-building"></i> Publisher:</span>
+                        <span id="modalBookPublisher" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-tags"></i> Subjects:</span>
+                        <div class="detail-value">
+                            <div id="modalBookSubjects" class="subjects-list"></div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-align-left"></i> Description:</span>
+                        <span id="modalBookDescription" class="detail-value"></span>
+                    </div>
+
+                    <!-- AI Summary Section -->
+                    <div class="detail-item">
+                        <button class="btn-ai-summary" id="aiSummaryBtn" onclick="getAISummary()">
+                            <i class="fas fa-robot"></i> Get AI Summary
+                        </button>
+                    </div>
+                    <div class="ai-summary-result" id="aiSummaryResult">
+                        <h5><i class="fas fa-sparkles"></i> AI Summary</h5>
+                        <p id="aiSummaryText"></p>
+                    </div>
+
+                    <div class="mt-4">
+                        <button id="modalAddButton" class="btn btn-primary" onclick="addCurrentBookToLibrary()">
+                            <i class="fas fa-plus"></i> Add to My Library
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="closeBookDetailsModal()">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<header>
+    <div class="logo">
+        <h1>ShelfTrack</h1>
+    </div>
+    <nav>
+        <ul>
+            <li th:unless="${isLoggedIn}">
+                <a th:href="@{/home}"><i class="fas fa-home"></i> Home</a>
+            </li>
+            <li th:if="${isLoggedIn}">
+                <a th:href="@{/dashboard}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            </li>
+            <li th:unless="${isLoggedIn}">
+                <a th:href="@{/login}"><i class="fas fa-sign-in-alt"></i> Login</a>
+            </li>
+            <li th:if="${isLoggedIn}">
+                <a th:href="@{/logout}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+    <!-- Recommendations Section (Only for logged-in users) -->
+    <!-- Recommendations Section (Only for logged-in users) - NOW LOADS ASYNC -->
+    <section class="recommendations-section" th:if="${isLoggedIn}" id="recommendationsSection">
+        <!-- Loading State -->
+        <div class="recs-loading" id="recsLoading">
+            <div class="section-header">
+                <h2><i class="fas fa-sparkles"></i> Recommended For You</h2>
+                <p class="section-subtitle">Analyzing your reading preferences...</p>
+            </div>
+            <div class="recs-loading-content">
+                <div class="recs-shimmer-container">
+                    <div class="shimmer-card"></div>
+                    <div class="shimmer-card"></div>
+                    <div class="shimmer-card"></div>
+                    <div class="shimmer-card"></div>
+                    <div class="shimmer-card"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Loaded Recommendations -->
+        <div class="recs-loaded" id="recsLoaded" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fas fa-sparkles"></i> Recommended For You</h2>
+                <p class="section-subtitle">Based on your library and ratings</p>
+            </div>
+            <div class="recommendations-carousel">
+                <button class="carousel-btn prev" onclick="scrollRecs(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="recommendations-container" id="recsContainer">
+                    <!-- Recommendations will be injected here -->
+                </div>
+                <button class="carousel-btn next" onclick="scrollRecs(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-recs" id="recsEmpty" style="display: none;">
+            <div class="empty-recs-content">
+                <i class="fas fa-lightbulb"></i>
+                <h3>Get Personalized Recommendations</h3>
+                <p>Add books to your library and rate them to receive tailored suggestions!</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div class="recs-error" id="recsError" style="display: none;">
+            <div class="error-content">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Couldn't load recommendations</p>
+                <button onclick="loadRecommendations()" class="retry-btn">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>
+        </div>
+    </section>
+
+
+
+    <section class="vitrine">
+        <h2>Browse & Discover Books</h2>
+
+        <div class="search-container">
+            <form th:action="@{/books}" method="get">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <input type="text" name="q" placeholder="Search books by title, author..."
+                               th:value="${query}" style="width: 100%;">
+                    </div>
+                    <div>
+                        <select name="genre">
+                            <option value="">All Genres</option>
+                            <option value="fiction" th:selected="${selectedGenre == 'fiction'}">Fiction</option>
+                            <option value="fantasy" th:selected="${selectedGenre == 'fantasy'}">Fantasy</option>
+                            <option value="science fiction" th:selected="${selectedGenre == 'science fiction'}">Sci-Fi</option>
+                            <option value="mystery" th:selected="${selectedGenre == 'mystery'}">Mystery</option>
+                            <option value="thriller" th:selected="${selectedGenre == 'thriller'}">Thriller</option>
+                            <option value="historical" th:selected="${selectedGenre == 'historical'}">Historical</option>
+                            <option value="biography" th:selected="${selectedGenre == 'biography'}">Biography</option>
+                            <option value="young adult" th:selected="${selectedGenre == 'young adult'}">YA</option>
+                            <option value="classic" th:selected="${selectedGenre == 'classic'}">Classic</option>
+                            <option value="horror" th:selected="${selectedGenre == 'horror'}">Horror</option>
+                            <option value="science" th:selected="${selectedGenre == 'science'}">Science</option>
+                            <option value="self-help" th:selected="${selectedGenre == 'self-help'}">Self-Help</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="size" th:value="${pageSize != null ? pageSize : 24}">
+                    <div>
+                        <button type="submit"><i class="fas fa-search"></i> Search</button>
+                    </div>
+                    <div th:if="${selectedGenre != null and !selectedGenre.isEmpty()}">
+                        <a th:href="@{/books(q=${query})}" class="clear-filters-btn">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="books-container">
+            <div class="book-card" th:each="book : ${books}">
+                <img th:if="${book['cover_i'] != null}"
+                     th:src="'https://covers.openlibrary.org/b/id/' + ${book['cover_i']} + '-M.jpg'"
+                     alt="Book Cover" loading="lazy">
+                <img th:unless="${book['cover_i'] != null}"
+                     th:src="@{/image/default-book.jpg}"
+                     alt="Book Cover"
+                     onerror="this.src='https://via.placeholder.com/200x300?text=No+Cover'">
+
+                <div class="book-info">
+                    <h3 th:text="${book['title']}">Book Title</h3>
+                    <p th:text="${book['author_name'] != null and !#lists.isEmpty(book['author_name']) ? book['author_name'][0] : 'Unknown Author'}">Author</p>
+
+                    <div class="book-actions">
+                        <button class="view-details-btn"
+                                onclick="showBookDetails(this)"
+                                th:data-title="${book['title']}"
+                                th:data-author="${book['author_name'] != null and !#lists.isEmpty(book['author_name']) ? book['author_name'][0] : 'Unknown Author'}"
+                                th:data-cover="${book['cover_i']}"
+                                th:data-year="${book['first_publish_year'] != null ? book['first_publish_year'] : ''}">
+                            <i class="fas fa-info-circle"></i> Details
+                        </button>
+
+                        <button class="add-to-library-btn"
+                                th:if="${isLoggedIn}"
+                                onclick="addToLibrary(this)"
+                                th:data-title="${book['title']}"
+                                th:data-author="${book['author_name'] != null and !#lists.isEmpty(book['author_name']) ? book['author_name'][0] : 'Unknown Author'}"
+                                th:data-cover="${book['cover_i']}">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+
+                        <a th:unless="${isLoggedIn}" th:href="@{/login}" class="add-to-library-btn">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${books == null or books.isEmpty()}" class="empty-state">
+                <i class="fas fa-search"></i>
+                <h3>No books found</h3>
+                <p th:if="${query != null}">Try different keywords</p>
+                <p th:unless="${query != null}">Search above to find books</p>
+            </div>
+        </div>
+
+        <div class="pagination" th:if="${books != null and !books.isEmpty()}">
+            <a th:if="${currentPage > 1}"
+               th:href="@{/books(q=${query}, genre=${selectedGenre}, page=${currentPage - 1}, size=${pageSize})}"
+               class="pagination-btn">
+                <i class="fas fa-chevron-left"></i> Prev
+            </a>
+            <span th:unless="${currentPage > 1}" class="pagination-btn disabled">
+                <i class="fas fa-chevron-left"></i> Prev
+            </span>
+
+            <div class="pagination-numbers">
+                <span class="page-number active" th:text="${currentPage}">1</span>
+            </div>
+
+            <a th:if="${hasMore}"
+               th:href="@{/books(q=${query}, genre=${selectedGenre}, page=${currentPage + 1}, size=${pageSize})}"
+               class="pagination-btn">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+            <span th:unless="${hasMore}" class="pagination-btn disabled">
+                Next <i class="fas fa-chevron-right"></i>
+            </span>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2025 Book Management System. All rights reserved.</p>
+</footer>
+
+<!-- Floating Translate Button -->
+<button class="translate-fab" onclick="toggleTranslatePanel()" title="Translate">
+    <i class="fas fa-language"></i>
+</button>
+
+<!-- Translation Panel -->
+<div class="translate-panel" id="translatePanel">
+    <div class="translate-panel-header">
+        <h3><i class="fas fa-globe"></i> Translator</h3>
+        <button class="translate-panel-close" onclick="toggleTranslatePanel()">&times;</button>
+    </div>
+    <div class="translate-panel-body">
+        <textarea id="translateText" placeholder="Enter text to translate..."></textarea>
+        <div class="translate-controls-row">
+            <select id="targetLang">
+                <option value="ar">Arabic</option>
+                <option value="fr">French</option>
+                <option value="es">Spanish</option>
+                <option value="de">German</option>
+                <option value="zh">Chinese</option>
+                <option value="ja">Japanese</option>
+            </select>
+            <button class="translate-panel-btn" id="translateBtn">
+                <i class="fas fa-arrow-right"></i> Translate
+            </button>
+        </div>
+        <div class="translate-result" id="translationResult"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    let currentBookData = null;
+    let userLibraryBooks = new Set();
+    const isLoggedIn = /*[[${isLoggedIn}]]*/ false;
+    const userId = /*[[${userId}]]*/ null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (isLoggedIn) {
+            loadUserLibrary();
+        }
+        document.getElementById("translateBtn").addEventListener("click", handleTranslation);
+    });
+
+    async function loadUserLibrary() {
+        try {
+            const response = await fetch('/api/library/titles');
+            if (response.ok) {
+                const titles = await response.json();
+                titles.forEach(title => userLibraryBooks.add(title.toLowerCase().trim()));
+            }
+        } catch (e) { console.log('Library load error:', e); }
+    }
+
+    // ============ Recommendations Carousel ============
+    function scrollRecs(dir) {
+        const container = document.getElementById('recsContainer');
+        const scrollAmount = 300;
+        container.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
+    }
+
+    async function addRecToLibrary(button) {
+        if (!isLoggedIn) { window.location.href = '/login'; return; }
+
+        const data = button.dataset;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        // Handle both Open Library and Google Books cover URLs
+        let coverUrl = null;
+        if (data.cover) {
+            // Check if it's a full URL (Google Books) or just an ID (Open Library)
+            if (data.cover.startsWith('http')) {
+                coverUrl = data.cover; // Google Books URL
+            } else {
+                coverUrl = `https://covers.openlibrary.org/b/id/${data.cover}-M.jpg`; // Open Library ID
+            }
+        }
+
+        const bookData = {
+            title: data.title,
+            author: data.author,
+            coverUrl: coverUrl,
+            totalPages: 0,
+            status: 'TO_READ'
+        };
+
+        try {
+            const response = await fetch('/dashboard/add-book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookData)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showMessage('success', 'Added to library!');
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.style.background = '#10b981';
+            } else {
+                showMessage('error', result.message || 'Failed');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-plus"></i>';
+            }
+        } catch (e) {
+            showMessage('error', 'Error adding book');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-plus"></i>';
+        }
+    }
+
+    // ============ Book Details Modal ============
+    async function showBookDetails(button) {
+        const data = button.dataset;
+        const title = data.title;
+        const author = data.author;
+        const coverId = data.cover;
+
+        document.getElementById('modalBookTitle').textContent = title || 'Unknown';
+        document.getElementById('modalBookAuthor').textContent = author || 'Unknown';
+        document.getElementById('modalBookYear').textContent = data.year || 'Unknown';
+        document.getElementById('modalBookIsbn').textContent = 'Loading...';
+        document.getElementById('modalBookPages').textContent = 'Loading...';
+        document.getElementById('modalBookPublisher').textContent = 'Loading...';
+        document.getElementById('modalBookDescription').textContent = 'Loading...';
+        document.getElementById('modalBookSubjects').innerHTML = '';
+        document.getElementById('aiSummaryResult').classList.remove('show');
+
+        const coverImg = document.getElementById('modalBookCover');
+        coverImg.src = coverId
+            ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`
+            : 'https://via.placeholder.com/200x300?text=No+Cover';
+
+        document.getElementById('bookDetailsModal').classList.add('show');
+
+        try {
+            const query = encodeURIComponent(`${title} ${author}`);
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`);
+            const result = await response.json();
+
+            if (result.items && result.items.length > 0) {
+                const vol = result.items[0].volumeInfo;
+                const isbn = vol.industryIdentifiers ? vol.industryIdentifiers[0].identifier : 'N/A';
+                const pages = vol.pageCount || 0;
+                const publisher = vol.publisher || 'N/A';
+                const description = vol.description || 'No description';
+                const categories = vol.categories || [];
+
+                document.getElementById('modalBookIsbn').textContent = isbn;
+                document.getElementById('modalBookPages').textContent = pages > 0 ? `${pages} pages` : 'Unknown';
+                document.getElementById('modalBookPublisher').textContent = publisher;
+
+                const shortDesc = description.length > 150 ? description.substring(0, 150) + '...' : description;
+                document.getElementById('modalBookDescription').textContent = shortDesc;
+
+                const subjectsContainer = document.getElementById('modalBookSubjects');
+                categories.slice(0, 5).forEach(subject => {
+                    const tag = document.createElement('span');
+                    tag.className = 'subject-tag';
+                    tag.textContent = subject.trim();
+                    subjectsContainer.appendChild(tag);
+                });
+
+                currentBookData = {
+                    title, author,
+                    coverUrl: coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : null,
+                    totalPages: pages,
+                    status: 'TO_READ'
+                };
+            } else {
+                setFallbackData(data, title, author, coverId);
+            }
+        } catch (e) {
+            console.error('Error fetching details:', e);
+            setFallbackData(data, title, author, coverId);
+        }
+
+        updateAddButtonState(title);
+    }
+
+    function setFallbackData(data, title, author, coverId) {
+        document.getElementById('modalBookIsbn').textContent = 'N/A';
+        document.getElementById('modalBookPages').textContent = 'Unknown';
+        document.getElementById('modalBookPublisher').textContent = 'N/A';
+        document.getElementById('modalBookDescription').textContent = 'No description';
+        currentBookData = {
+            title, author,
+            coverUrl: coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : null,
+            totalPages: 0,
+            status: 'TO_READ'
+        };
+    }
+
+    function updateAddButtonState(title) {
+        const addButton = document.getElementById('modalAddButton');
+        if (!isLoggedIn) {
+            addButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to Add';
+            addButton.onclick = () => window.location.href = '/login';
+        } else if (userLibraryBooks.has(title.toLowerCase().trim())) {
+            addButton.innerHTML = '<i class="fas fa-check"></i> In Library';
+            addButton.disabled = true;
+            addButton.style.background = '#10b981';
+        } else {
+            addButton.innerHTML = '<i class="fas fa-plus"></i> Add to Library';
+            addButton.disabled = false;
+            addButton.style.background = '';
+            addButton.onclick = addCurrentBookToLibrary;
+        }
+    }
+
+    function closeBookDetailsModal() {
+        document.getElementById('bookDetailsModal').classList.remove('show');
+        document.getElementById('aiSummaryResult').classList.remove('show');
+        document.getElementById('aiSummaryText').textContent = '';
+        currentBookData = null;
+    }
+
+    // ============ ASYNC RECOMMENDATIONS LOADING ============
+    document.addEventListener('DOMContentLoaded', function() {
+        if (isLoggedIn) {
+            loadUserLibrary();
+            loadRecommendations(); // Load recommendations asynchronously
+        }
+        document.getElementById("translateBtn").addEventListener("click", handleTranslation);
+    });
+
+    async function loadRecommendations() {
+        const section = document.getElementById('recommendationsSection');
+        const loadingEl = document.getElementById('recsLoading');
+        const loadedEl = document.getElementById('recsLoaded');
+        const emptyEl = document.getElementById('recsEmpty');
+        const errorEl = document.getElementById('recsError');
+
+        // Show loading state
+        loadingEl.style.display = 'block';
+        loadedEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+        errorEl.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/recommendations', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch');
+
+            const data = await response.json();
+
+            loadingEl.style.display = 'none';
+
+            if (data.success && data.recommendations && data.recommendations.length > 0) {
+                // Has recommendations - show them
+                renderRecommendations(data.recommendations);
+                loadedEl.style.display = 'block';
+                emptyEl.style.display = 'none';
+            } else if (data.hasBooks === false || data.reason === 'empty_library') {
+                // No books in library - show empty state
+                emptyEl.style.display = 'block';
+                loadedEl.style.display = 'none';
+            } else {
+                // Has books but no recs yet (still processing or no matches)
+                // HIDE the entire section - don't show empty state
+                section.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error loading recommendations:', error);
+            loadingEl.style.display = 'none';
+            // On error, just hide the section instead of showing error
+            section.style.display = 'none';
+        }
+    }
+
+    function renderRecommendations(recommendations) {
+        const container = document.getElementById('recsContainer');
+        container.innerHTML = '';
+
+        recommendations.forEach((rec, index) => {
+            const card = document.createElement('div');
+            card.className = 'rec-card';
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.style.animation = 'fadeInUp 0.5s ease forwards';
+            card.style.opacity = '0';
+
+            // Handle cover URL - check if it's full URL or Open Library ID
+            let coverHtml;
+            if (rec.coverId) {
+                const coverUrl = rec.coverId.startsWith('http')
+                    ? rec.coverId
+                    : `https://covers.openlibrary.org/b/id/${rec.coverId}-M.jpg`;
+                coverHtml = `<img src="${coverUrl}" alt="Cover" loading="lazy"
+                         onerror="this.parentElement.innerHTML='<div class=\\'rec-cover-placeholder\\'><i class=\\'fas fa-book\\'></i></div>'">`;
+            } else {
+                coverHtml = `<div class="rec-cover-placeholder"><i class="fas fa-book"></i></div>`;
+            }
+
+            card.innerHTML = `
+            <div class="rec-cover">
+                ${coverHtml}
+                <div class="rec-reason">${escapeHtml(rec.reason || 'Recommended')}</div>
+            </div>
+            <div class="rec-info">
+                <h4 title="${escapeHtml(rec.title)}">${escapeHtml(rec.title)}</h4>
+                <p title="${escapeHtml(rec.author)}">${escapeHtml(rec.author)}</p>
+                <button class="btn-add-rec"
+                        onclick="addRecToLibrary(this)"
+                        data-title="${escapeHtml(rec.title)}"
+                        data-author="${escapeHtml(rec.author)}"
+                        data-cover="${escapeHtml(rec.coverId || '')}">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        `;
+
+            container.appendChild(card);
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Add fadeInUp animation
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`;
+    document.head.appendChild(style);
+
+    // ============ Recommendations Carousel ============
+    function scrollRecs(dir) {
+        const container = document.getElementById('recsContainer');
+        if (!container) return;
+        const scrollAmount = 300;
+        container.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
+    }
+
+    // Update addRecToLibrary to handle the new data structure
+    async function addRecToLibrary(button) {
+        if (!isLoggedIn) { window.location.href = '/login'; return; }
+
+        const data = button.dataset;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        // Handle both Open Library and Google Books cover URLs
+        let coverUrl = null;
+        if (data.cover) {
+            coverUrl = data.cover.startsWith('http')
+                ? data.cover
+                : `https://covers.openlibrary.org/b/id/${data.cover}-M.jpg`;
+        }
+
+        const bookData = {
+            title: data.title,
+            author: data.author,
+            coverUrl: coverUrl,
+            totalPages: 0,
+            status: 'TO_READ'
+        };
+
+        try {
+            const response = await fetch('/dashboard/add-book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookData)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showMessage('success', 'Added to library!');
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.style.background = '#10b981';
+                userLibraryBooks.add(data.title.toLowerCase().trim());
+            } else {
+                showMessage('error', result.message || 'Failed');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-plus"></i>';
+            }
+        } catch (e) {
+            showMessage('error', 'Error adding book');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-plus"></i>';
+        }
+    }
+
+    // ============ Add to Library ============
+    async function addToLibrary(button) {
+        if (!isLoggedIn) { window.location.href = '/login'; return; }
+
+        const data = button.dataset;
+        const title = data.title;
+
+        if (userLibraryBooks.has(title.toLowerCase().trim())) {
+            showMessage('warning', 'Already in library!');
+            return;
+        }
+
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        let totalPages = 0;
+        try {
+            const query = encodeURIComponent(`${title} ${data.author}`);
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`);
+            const result = await response.json();
+            if (result.items && result.items.length > 0) {
+                totalPages = result.items[0].volumeInfo.pageCount || 0;
+            }
+        } catch (e) { }
+
+        const bookData = {
+            title, author: data.author,
+            coverUrl: data.cover ? `https://covers.openlibrary.org/b/id/${data.cover}-M.jpg` : null,
+            totalPages, status: 'TO_READ'
+        };
+
+        fetch('/dashboard/add-book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookData)
+        })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    showMessage('success', 'Book added!');
+                    button.innerHTML = '<i class="fas fa-check"></i>';
+                    button.style.background = '#10b981';
+                    userLibraryBooks.add(title.toLowerCase().trim());
+                } else {
+                    showMessage('error', res.message || 'Failed');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-plus"></i> Add';
+                }
+            })
+            .catch(() => {
+                showMessage('error', 'Error adding book');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-plus"></i> Add';
+            });
+    }
+
+    function addCurrentBookToLibrary() {
+        if (!currentBookData || !isLoggedIn) { window.location.href = '/login'; return; }
+
+        if (userLibraryBooks.has(currentBookData.title.toLowerCase().trim())) {
+            showMessage('warning', 'Already in library!');
+            return;
+        }
+
+        const addButton = document.getElementById('modalAddButton');
+        addButton.disabled = true;
+        addButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+        fetch('/dashboard/add-book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentBookData)
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('success', 'Book added!');
+                    addButton.innerHTML = '<i class="fas fa-check"></i> Added';
+                    addButton.style.background = '#10b981';
+                    userLibraryBooks.add(currentBookData.title.toLowerCase().trim());
+                    setTimeout(closeBookDetailsModal, 1500);
+                } else {
+                    showMessage('error', data.message || 'Failed');
+                    addButton.disabled = false;
+                    addButton.innerHTML = '<i class="fas fa-plus"></i> Add to Library';
+                }
+            })
+            .catch(() => {
+                showMessage('error', 'Error occurred');
+                addButton.disabled = false;
+                addButton.innerHTML = '<i class="fas fa-plus"></i> Add to Library';
+            });
+    }
+
+    // ============ AI Summary ============
+    async function getAISummary() {
+        if (!currentBookData) return;
+
+        const button = document.getElementById('aiSummaryBtn');
+        const resultDiv = document.getElementById('aiSummaryResult');
+        const textEl = document.getElementById('aiSummaryText');
+
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        try {
+            const response = await fetch('/bookSummary', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: currentBookData.title,
+                    author: currentBookData.author
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.summary && data.summary !== 'null' && data.summary.trim() !== '') {
+                textEl.textContent = data.summary;
+                resultDiv.classList.add('show');
+
+            } else {
+                textEl.textContent = 'Summary not available.';
+                resultDiv.classList.add('show');
+            }
+        } catch (e) {
+            textEl.textContent = 'Failed to generate summary.';
+            resultDiv.classList.add('show');
+            showMessage('error', 'Summary generation failed');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-robot"></i> Get AI Summary';
+        }
+    }
+
+    // ============ Translation ============
+    function toggleTranslatePanel() {
+        document.getElementById('translatePanel').classList.toggle('show');
+    }
+
+    function handleTranslation() {
+        const text = document.getElementById("translateText").value;
+        const target = document.getElementById("targetLang").value;
+        const button = document.getElementById("translateBtn");
+        const resultDiv = document.getElementById("translationResult");
+
+        if (!text.trim()) { showMessage('warning', 'Enter text'); return; }
+
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        fetch('/translateText', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `text=${encodeURIComponent(text)}&target=${encodeURIComponent(target)}`
+        })
+            .then(r => r.json())
+            .then(data => {
+                resultDiv.innerHTML = data.translated;
+                resultDiv.style.direction = ['ar', 'he', 'fa'].includes(target) ? 'rtl' : 'ltr';
+                resultDiv.classList.add('show');
+                showMessage('success', 'Translated!');
+            })
+            .catch(() => showMessage('error', 'Translation failed'))
+            .finally(() => {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-arrow-right"></i> Translate';
+            });
+    }
+
+    // ============ Utilities ============
+    function showMessage(type, message) {
+        const el = document.getElementById(type + 'Message');
+        el.querySelector('span').textContent = message;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    document.getElementById('bookDetailsModal').addEventListener('click', function(e) {
+        if (e.target === this) closeBookDetailsModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeBookDetailsModal();
+        }
+    });
+</script>
+</body>
+</html>

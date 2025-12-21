@@ -1,0 +1,147 @@
+name: booktracker
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: booktracker
+      MYSQL_USER: bookuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  keycloak-db:
+    image: mariadb:10.6
+    environment:
+      MYSQL_DATABASE: keycloak_db
+      MYSQL_ROOT_PASSWORD: ${KEYCLOAK_DB_ROOT_PASSWORD}
+      MYSQL_USER: keycloak
+      MYSQL_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak-db-data:/var/lib/mysql
+    command: ["--transaction-isolation=READ-COMMITTED", "--binlog-format=ROW"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.1.2
+    container_name: keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_DB: mariadb
+      KC_DB_URL_HOST: keycloak-db
+      KC_DB_URL_PORT: 3306
+      KC_DB_URL_DATABASE: keycloak_db
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_LOG_LEVEL: INFO
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./booktracker-realm.json:/opt/keycloak/data/import/booktracker-realm.json:ro
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 40s
+    networks:
+      - backend
+
+  ai-service:
+    image: ai-service:1.0.0
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 5001
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+
+  book-service:
+    image: book-service:1.0.0
+    build:
+      context: ./book-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/booktracker?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: bookuser
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/booktracker
+
+
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - backend
+
+  vitrine:
+    image: vitrine:1.0.0
+    build:
+      context: ./vitrine
+      dockerfile: Dockerfile
+    environment:
+      BOOK_SERVICE_URL: http://book-service:8081
+      AI_SERVICE_URL: http://ai-service:5001
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/booktracker
+      KEYCLOAK_TOKEN_URL: http://keycloak:8080/realms/booktracker/protocol/openid-connect/token
+      KEYCLOAK_ADMIN_URL: http://keycloak:8080
+      SPRING_OAUTH2_CLIENT_SECRET: ${VITRINE_CLIENT_SECRET}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"
+    depends_on:
+      book-service:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  mysql-data:
+  keycloak-db-data:
+  keycloak-data:
+
+networks:
+  backend:
+    driver: bridge

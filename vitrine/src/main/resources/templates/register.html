@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Page</title>
+    <link rel="stylesheet" th:href="@{/css/style_register.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <div class="login-box">
+        <h2>Register</h2>
+
+        <form th:action="@{/register}" method="post">
+            <div class="input-box">
+                <label>Name</label>
+                <input type="text" name="name" required>
+            </div>
+
+            <div class="input-box">
+                <label>Email</label>
+                <input type="email" name="email" required>
+            </div>
+
+            <div class="input-box">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+
+            <div class="input-box">
+                <label>Confirm Password</label>
+                <input type="password" name="confirmPassword" required>
+            </div>
+
+            <button type="submit" class="btn">Register</button>
+
+            <!-- Success message -->
+            <div th:if="${param.success}" class="success-message">
+                <p>Registration successful! Please login.</p>
+            </div>
+
+            <!-- Error message -->
+            <div th:if="${error}" class="error-message">
+                <p th:text="${error}"></p>
+            </div>
+
+            <p class="register">Already have an account? <a th:href="@{/login}">Log in</a></p>
+        </form>
+    </div>
+
+    <div class="image-box">
+        <img src="/image/r.jpg" alt="Book Image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+    </div>
+</div>
+
+<!-- Add Font Awesome for the book icon -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>

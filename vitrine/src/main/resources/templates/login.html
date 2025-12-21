@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" th:href="@{/css/style_login.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <div class="login-box">
+        <h2>Log in</h2>
+
+        <form id="login-form" th:action="@{/login}" method="post">
+            <div class="input-box">
+                <label>Email</label>
+                <input type="text" name="email" required>
+            </div>
+
+            <div class="input-box">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+
+            <button type="submit" class="btn">Log in</button>
+
+            <!-- error message from server -->
+            <div th:if="${error}" class="error-message">
+                <p th:text="${error}"></p>
+            </div>
+
+            <p class="register">Don't have an account? <a th:href="@{/register}">Register Now</a></p>
+        </form>
+    </div>
+
+    <div class="image-box">
+        <img src="/image/r.jpg" alt="Book Image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+    </div>
+
+</div>
+
+<!-- Add Font Awesome for the book icon -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>
