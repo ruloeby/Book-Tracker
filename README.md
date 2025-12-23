@@ -158,11 +158,7 @@ Screenshots are stored in the `screenshots/` folder and displayed below.
 ![Book summary](screenshots/summary.jpg)
 
 
-## Team
 
-This project was developed collaboratively by:
-
-Rihab Bouchair and Ines Mecheter
 
 ## Notes
 
