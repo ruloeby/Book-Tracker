@@ -157,7 +157,8 @@ Screenshots are stored in the `screenshots/` folder and displayed below.
 ### Summary
 ![Book summary](screenshots/summary.jpg)
 
-
+BookTracker is a modular, secure, and scalable web application designed to demonstrate modern backend development practices.
+It serves as a strong foundation for further experimentation and real-world system design.
 
 
 ## Notes
